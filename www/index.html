@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="msapplication-tap-highlight" content="no" />
+        <meta name="viewport" content="user-scalable=no, initial-scale=1, minimum-scale=1" />
+        <link rel="stylesheet" type="text/css" href="css/index.css" />
+        <title>File API</title>
+        <style>
+
+            button{
+                width: 100%;
+                height: 60px;
+            }
+        </style>
+    </head>
+    <body>
+        <button id="crearfichero">CREAR FICHERO</button>
+        <button id="leerfichero">LEER FICHERO</button>
+        <button id="escribirfichero">ESCRIBIR FICHERO</button>
+        <button id="anhadirDatos">AÑADIR DATOS</button>
+        <button id="crearDirectorio">CREAR DIRECTORIO</button>
+        <button id="crearsubDirectorio">CREAR SUBDIRECTORIO</button>
+        <button id="eliminarDirectorio">ELIMINAR DIRECTORIO</button>
+        <button id="mostrarImagen">MOSTRAR IMAGEN</button>
+        <br />
+        
+        <script type="text/javascript" src="cordova.js"></script>
+        <script type="text/javascript" src="js/jquery.js"></script>
+        <script type="text/javascript">
+           $(document).ready(function(){
+               // crear archivo
+               $("#crearfichero").on("click",function(){
+                   window.requestFileSystem(window.PERSISTENT, 1024*1024, function(fs){
+                       fs.root.getFile('NuestroArchivo.txt', {create: true, exclusive: true}, function(fileEntry){
+                           
+                    alert(fileEntry.fullPath);
+                           
+                       }, errorHandler);
+                   }, errorHandler);
+                   
+               });
+               
+               
+               
+               $("#leerfichero").on("click",function(){
+                   //leer archivo
+                   // solicitamos sistema de ficheros
+                   window.requestFileSystem(window.PERSISTENT, 1024*1024, function(fs){
+                       // al sistema de ficheros le solicitamos el fichero
+                        fs.root.getFile('NuestroArchivo.txt', {}, function(fileEntry) {
+                            // a la entrada de ficheros le decimos que lo lea
+                            fileEntry.file(function(file) {
+                                var reader = new FileReader();
+                                reader.onloadend = function(e) {
+                                    alert(this.result); 
+                                }
+                                reader.readAsText(file);
+                            },errorHandler);  
+                        },errorHandler);   
+                   }, errorHandler);
+               });
+               
+               
+               $("#escribirfichero").on("click",function(){
+                    window.requestFileSystem(window.PERSISTENT, 1024*1024, function(fs){
+                        fs.root.getFile('NuestroArchivo.txt', {create: false}, function(fileEntry) {
+
+                        // creamos un objeto filewriter para nuestra entrada de archivo
+                            fileEntry.createWriter(function(fileWriter) {
+                                
+                                // función que se ejecuta al terminar de escribir
+                                fileWriter.onwriteend = function(e) {
+                                    alert('Archivo escrito.');
+                                };
+                                // función de error
+                                fileWriter.onerror = function(e) {
+                                    alert('Fallo: ' + e.toString());
+                                };
+                                // texto a añadir
+                                fileWriter.write("Texto de prueba");
+
+                            }, errorHandler);   
+                        }, errorHandler);
+                   
+                    });
+               });
+           
+           
+            //Añadir datos
+            $("#anhadirDatos").on("click",function(){
+                window.requestFileSystem(window.PERSISTENT, 1024*1024, function(fs){
+                    fs.root.getFile('NuestroArchivo.txt', {create: false}, function(fileEntry) {
+                        fileEntry.createWriter(function(fileWriter) {
+                            fileWriter.seek(fileWriter.length); // Colocamos el cursos al final del archivo.
+                            fileWriter.write(" Text añadido"); // texto a añadir
+                            alert("texto anhadido")
+                        }, errorHandler);
+                    }, errorHandler);
+                   }, errorHandler);
+
+               });
+           
+               
+               // eliminar ficheros
+               $("eliminarFichero").on("click",function(){
+                    window.requestFileSystem(window.PERSISTENT, 1024*1024, function(fs) {
+                        fs.root.getFile('NuestroArchivo.txt', {create: false}, function(fileEntry) {
+                            // ejecutamos el metodo para eliminar
+                            fileEntry.remove(function() {
+                                alert('Archivo eliminado.');
+                            }, errorHandler);
+
+                        }, errorHandler);
+                    }, errorHandler); 
+               });
+           
+               // Crear directorio
+               $("#crearDirectorio").on("click",function(){
+                   window.requestFileSystem(window.PERSISTENT, 1024*1024, function(fs) {
+                        fs.root.getDirectory('NuestroDirectorio', {create: true}, function(dirEntry) {
+
+                        }, errorHandler);
+                    }, errorHandler);
+               });
+               
+               
+               // Crear subdirectorios
+               $("#crearDirectorio").on("click",function(){
+                    var path = 'dir1/dir2/dir3/';
+                    window.requestFileSystem(window.PERSISTENT, 1024*1024, function(fs){
+                        createDir(fs.root, path.split('/')); // fs.root es un DirectoryEntry.
+                    }, errorHandler);
+                   
+                   function createDir(rootDirEntry, folders){
+                        if (folders[0] == '.' || folders[0] == '') {
+                            folders = folders.slice(1);
+                        }
+                        rootDirEntry.getDirectory(folders[0], {create: true}, function(dirEntry) {
+                        // llamamos de forma recursiva a la función
+                        if (folders.length) {
+                            createDir(dirEntry, folders.slice(1));
+                        }
+                    }, errorHandler);
+                   }
+               });
+               
+           
+               
+               // eliminar directorio
+               $("#eliminarDirectorio").on("click",function(){
+                   window.requestFileSystem(window.PERSISTENT, 1024*1024, function(fs) {
+                        fs.root.getDirectory('NuestroDirectorio', {}, function(dirEntry) {
+                            // si queremos que elimine de forma recursiva ejecuariamos la siguiente función: dirEntry.removeRecursively(func....)
+                            dirEntry.remove(function() {
+                                alert('Directory removed.');
+                            }, errorHandler);
+
+                        }, errorHandler);
+                   }, errorHandler);
+               });
+           
+                
+            // Obtener la URL con un nuevo esquema para poder hacer referencia, por ejemplo a una image salvada
+                $("#mostrarImagen").on("click",function(){
+                    fs.root.getFile('imagen.jpg', {create: false}, function(fileEntry) {
+                        var img = document.createElement('img');
+                        img.src = fileEntry.toURL(); 
+                        document.body.appendChild(img);
+                    },errorHandler);
+                    
+                });
+           
+           
+           
+           }); // end document ready
+            
+            
+            
+            function errorHandler(e) {
+              var msg = '';
+
+              switch (e.code) {
+                case FileError.QUOTA_EXCEEDED_ERR:
+                  msg = 'QUOTA_EXCEEDED_ERR';
+                  break;
+                case FileError.NOT_FOUND_ERR:
+                  msg = 'NOT_FOUND_ERR';
+                  break;
+                case FileError.SECURITY_ERR:
+                  msg = 'SECURITY_ERR';
+                  break;
+                case FileError.INVALID_MODIFICATION_ERR:
+                  msg = 'INVALID_MODIFICATION_ERR';
+                  break;
+                case FileError.INVALID_STATE_ERR:
+                  msg = 'INVALID_STATE_ERR';
+                  break;
+                default:
+                  msg = 'Unknown Error';
+                  break;
+              };
+
+              alert('Error: ' + msg);
+            }
+        </script>
+    </body>
+</html>
